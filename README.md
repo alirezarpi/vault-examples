@@ -1,1 +1,3 @@
-# vault-examples
+# Vault Examples
+
+**Each example contains its Vagrantfile
