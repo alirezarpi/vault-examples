@@ -20,6 +20,20 @@ def hostname_api():
         mimetype="application/json",
     )
 
+
+@app.route("/query/")
+def query_api():
+    data = {
+        "version": version,
+        "data": "{}".format(),
+    }
+    return app.response_class(
+        response=json.dumps(data),
+        status=200,
+        mimetype="application/json",
+    )
+
+
 @app.route("/health/")
 def health_api():
     data = {"version": version, "state": "RUNNING"}

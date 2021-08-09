@@ -19,11 +19,12 @@
 
 ## URLs
 
-| URL        | What it does                               |
-| ---------- | ------------------------------------------ |
-| `/`        | version + hostname                         |
-| `/health/` | version + state "RUNNING"                  |
-| `/fail/`   | version + state "SHUTDOWN"                 |
+| URL        | What it does               |
+| ---------- | -------------------------- |
+| `/`        | version + hostname         |
+| `/query/`  | version + data             |
+| `/health/` | version + state "RUNNING"  |
+| `/fail/`   | version + state "SHUTDOWN" |
 
 ---
 
