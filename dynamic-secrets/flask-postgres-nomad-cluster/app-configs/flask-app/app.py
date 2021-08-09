@@ -1,6 +1,6 @@
 import time, os
 import socket
-
+import psycopg2
 from flask import Flask, json, request
 from flask_cors import CORS
 
@@ -10,6 +10,15 @@ version = os.environ.get("VERSION")
 app = Flask(__name__)
 CORS(app)
 
+
+def get_db_conn():
+    conn = psycopg2.connect(
+        host=os.environ.get("DB_HOST"),
+        database=os.environ.get("DB_NAME"),
+        user=os.environ.get("DB_USER"),
+        password=os.environ.get("DB_PASSWORD"))
+    
+    return conn
 
 @app.route("/")
 def hostname_api():
@@ -23,9 +32,14 @@ def hostname_api():
 
 @app.route("/query/")
 def query_api():
+    conn = get_db_conn()
+    conn.rollback()
+    cur = conn.cursor()
+    cur.execute('SELECT * from {};'.format("actor"))
+    query = cur.fetchall()
     data = {
         "version": version,
-        "data": "{}".format(),
+        "data": "{}".format(query),
     }
     return app.response_class(
         response=json.dumps(data),
