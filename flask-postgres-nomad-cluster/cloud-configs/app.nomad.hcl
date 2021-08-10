@@ -1,4 +1,4 @@
-job "flask-app" {
+job "vault-flask-postgres-app" {
 	datacenters = ["local-dc"]
 	type = "service"
 
@@ -38,6 +38,10 @@ job "flask-app" {
 		task "flask-app" {
 			driver = "docker"
 
+			// vault {
+			// 	policies = ["database-dynamic-access"]
+			// }
+
 			config {
 				// image = "alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest"
                 image = "localhost:5000/vault-dynamic-secrets-flask-postgres-app:latest"
@@ -49,21 +53,27 @@ job "flask-app" {
 				tags = ["global", "flask-app", "urlprefix-/"]
 				port = "api"
 				check {
-                    name = "alive"download-sample
+                    name = "alive"
                     type = "http"
                     interval = "10s"
                     timeout = "3s"
                     path = "/health/"
 				}
 			}
-            env {
-                VERSION=0.0.0
-                DB_HOST=postgres-database
-                DB_NAME=dvdrental
-                DB_USER=postgres
-                DB_PASSWORD=postgres
-            }
 
+// 			template {
+//                 data = <<EOT
+//         {{ with secret "kv/database" }}
+// VERSION=0.0.0
+// DB_HOST=database
+// DB_NAME="dvdrental"
+// DB_USER="{{ .Data.user }}"
+// DB_PASSWORD="{{ .Data.password | toJSON }}"
+//         {{ end }}
+// EOT
+//         destination = "db.env"
+//         env         = true
+//             }
 			resources {
 				cpu = 256
 				memory = 128

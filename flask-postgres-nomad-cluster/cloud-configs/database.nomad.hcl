@@ -28,7 +28,7 @@ job "vault-flask-postgres-database" {
 
             service {
                 name = "${TASKGROUP}-service"
-                tags = ["global", "database", "urlprefix-/database"]
+                tags = ["global", "database"]
                 port = "db"
                 check {
                     type     = "tcp"
