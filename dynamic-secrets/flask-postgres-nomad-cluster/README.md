@@ -8,15 +8,15 @@
 
 ### Creating Database Credentials in Vault
 
-After everything is up you can create the database credentials in `vault` by issuing the commands:
+After everything is up you can create the database credentials in `vault` by issuing the commands into vagrant box (`$vagrant ssh`):
 ```
-$ vault secrets enable -version=1 kv
-$ vault kv put kv/database user=<USERNAME> password=<PASSWORD>
+vagrant@test-infrastructure:~$ vault secrets enable -version=1 kv
+vagrant@test-infrastructure:~$ vault kv put kv/database user=<USERNAME> password=<PASSWORD>
 ```
 
 Check if it's issued:
 ```
-$ vault kv get kv/database
+vagrant@test-infrastructure:~$ vault kv get kv/database
 ```
 
 ### Creating Database Policy for Nomad
@@ -32,17 +32,17 @@ path "kv/database" {
 
 now write the policy to the `database-access`:
 ```
-vault policy write database-access database-policy.hcl
+vagrant@test-infrastructure:~$ vault policy write database-access database-policy.hcl
 ```
 
-## Run the Database Job
+### Run the Database Job
 
 You can now run the job deployment to the cluster:
 ```
 $ nomad job run cloud-configs/database.nomad.hcl
 ```
 
-## Import Sample Data
+### Import Sample Data
 
 For continuing this demo project you need sample data the you can import them by doing:
 ```
@@ -51,3 +51,6 @@ $ nomad alloc exec -job vault-flask-postgres-database unzip /dvdrental.zip
 $ nomad alloc exec -job vault-flask-postgres-database pg_restore -U <USER> -W -d dvdrental /dvdrental.tar
 ```
 enter the `password` that you've set on vault and the data is imported successfully (ignore some of queries because it's set to user `postgres` which we're not using).
+
+---
+
