@@ -14,10 +14,9 @@
 `$ docker run -it --rm --name vault-dynamic-secrets-flask-postgres-app --network host -e VERSION=0.0.0 -e DB_HOST=localhost -e DB_NAME=dvdrental -e DB_USER=postgres -e DB_PASSWORD=postgres alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest`
 
 ### For import sample data into database
-`$ wget https://www.postgresqltutorial.com/wp-content/uploads/2019/05/dvdrental.zip -O dvdrental.zip`
-`$ unzip dvdrental.zip`
-`$ createdb dvdrental -U postgres -O postgres`
-`$ pg_restore -U postgres -d dvdrental dvdrental.tar`
+`$ wget https://www.postgresqltutorial.com/wp-content/uploads/2019/05/dvdrental.zip -O /dvdrental.zip`
+`$ unzip /dvdrental.zip`
+`$ pg_restore -U postgres -d dvdrental /dvdrental.tar`
 
 ----
 

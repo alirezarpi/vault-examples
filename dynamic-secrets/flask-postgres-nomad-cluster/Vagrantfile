@@ -206,8 +206,16 @@ server {
   enabled = true
   bootstrap_expect = 1
 }
+
+plugin "raw_exec" {
+  config {
+    enabled = true
+  }
+}
+
 client {
   enabled = true
+  network_interface = "eth0"
 }
 
 vault {
@@ -271,10 +279,10 @@ Vagrant.configure(2) do |config|
   config.vm.box_check_update = false
   config.vbguest.auto_update = false
 
-  config.vm.hostname = "test-app"
+  config.vm.hostname = "test-infrastructure"
   config.vm.provision "shell", inline: $script, privileged: false
 
-  for p in [4646, 5000, 8500, 9998, 9999] do
+  for p in [4646, 5000, 8200, 8500, 9998, 9999] do
     config.vm.network :forwarded_port, guest: p, host: p
   end
 
