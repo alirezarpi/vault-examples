@@ -1,3 +1,3 @@
 # Vault Examples
 
-**Each example contains its Vagrantfile
+**Each example contains its Vagrantfile**

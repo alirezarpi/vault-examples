@@ -1,7 +1,7 @@
 # flask-postgres-app Example
 
 
-**NOTE: After each restart you should run `$ vagrant ssh -c "export VAULT_ADDR=http://127.0.0.1:8200 && ./unlock-vault.sh"`
+**NOTE: After each restart you should run `$ vagrant ssh -c "export VAULT_ADDR=http://127.0.0.1:8200 && ./unlock-vault.sh"`**
 ## Setup
 
 > Builds related to the apps are located into `README.md` in the `app-configs` directory.
