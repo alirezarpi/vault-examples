@@ -57,12 +57,35 @@ bootstrap_expect=1
 bind_addr = "0.0.0.0"
 advertise_addr = "127.0.0.1"
 
+ports {
+  grpc = 8502
+}
+
+connect {
+  enabled = true
+}
+
 client_addr = "0.0.0.0"
 ui_config{
   enabled = true
 }
 EOF
 ) | sudo tee /etc/consul.d/consul.hcl
+
+curl -L -o cni-plugins.tgz "https://github.com/containernetworking/plugins/releases/download/v0.9.0/cni-plugins-linux-$( [ $(uname -m) = aarch64 ] && echo arm64 || echo amd64)"-v0.9.0.tgz
+sudo mkdir -p /opt/cni/bin
+sudo sh -c "echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables"
+sudo sh -c "echo 1 > /proc/sys/net/bridge/bridge-nf-call-ip6tables"
+sudo sh -c "echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables"
+sudo tar -C /opt/cni/bin -xzf cni-plugins.tgz
+(
+cat <<-EOF
+net.bridge.bridge-nf-call-arptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+) | sudo tee /etc/sysctl.d/88-cni-ruls.conf
+
 
 sudo systemctl enable consul
 sudo systemctl start consul

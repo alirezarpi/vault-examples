@@ -12,6 +12,14 @@ job "vault-flask-postgres-database" {
             port "db"{
                 static = 5432
             }
+
+            mode = "bridge"
+        }
+
+        service {
+            name = "${TASKGROUP}-service"
+            tags = ["database"]
+            port = "db"
         }
 
         task "postgres-database" {
@@ -24,17 +32,6 @@ job "vault-flask-postgres-database" {
             config {
                 image = "postgres:12-alpine"
                 ports = ["db"]
-            }
-
-            service {
-                name = "${TASKGROUP}-service"
-                tags = ["global", "database"]
-                port = "db"
-                check {
-                    type     = "tcp"
-                    interval = "2s"
-                    timeout  = "2s"
-                }
             }
             
             template {

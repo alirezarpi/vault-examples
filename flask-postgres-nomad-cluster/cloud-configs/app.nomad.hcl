@@ -13,14 +13,29 @@ job "vault-flask-postgres-app" {
 	}
 
 	group "vault-flask-postgres-app" {
-		count = 1
+		count = 5
 
 		network {
 			port "api" {
 				to = 5000
 			}
+
+			mode = "bridge"
 		}
 			
+		service {
+			name = "${TASKGROUP}-service"
+			tags = ["flask-app", "urlprefix-/"]
+			port = "api"
+			check {
+				name = "alive"
+				type = "http"
+				interval = "10s"
+				timeout = "3s"
+				path = "/health/"
+			}
+		}
+
 		update {
 			max_parallel     = 1
 			min_healthy_time = "30s"
@@ -38,9 +53,9 @@ job "vault-flask-postgres-app" {
 		task "flask-app" {
 			driver = "docker"
 
-			// vault {
-			// 	policies = ["database-dynamic-access"]
-			// }
+			vault {
+				policies = ["database-dynamic-access"]
+			}
 
 			config {
 				// image = "alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest"
@@ -48,32 +63,21 @@ job "vault-flask-postgres-app" {
 				ports = ["api"]
 			}
 
-			service {
-				name = "${TASKGROUP}-service"
-				tags = ["global", "flask-app", "urlprefix-/"]
-				port = "api"
-				check {
-                    name = "alive"
-                    type = "http"
-                    interval = "10s"
-                    timeout = "3s"
-                    path = "/health/"
-				}
-			}
 
-// 			template {
-//                 data = <<EOT
-//         {{ with secret "kv/database" }}
-// VERSION=0.0.0
-// DB_HOST=database
-// DB_NAME="dvdrental"
-// DB_USER="{{ .Data.user }}"
-// DB_PASSWORD="{{ .Data.password | toJSON }}"
-//         {{ end }}
-// EOT
-//         destination = "db.env"
-//         env         = true
-//             }
+			template {
+                data = <<EOT
+        {{ with secret "database/creds/postgres-database-role" }}
+VERSION=0.0.0
+DB_HOST=127.0.0.1
+DB_NAME="dvdrental"
+DB_USER="{{ .Data.username }}"
+DB_PASSWORD="{{ .Data.password | toJSON }}"
+        {{ end }}
+EOT
+				destination = "db.env"
+				env         = true
+            }
+
 			resources {
 				cpu = 256
 				memory = 128
