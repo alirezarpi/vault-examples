@@ -80,7 +80,7 @@ EOT
 
 			resources {
 				cpu = 256
-				memory = 128
+				memory = 64
 			}
 
 			logs {
