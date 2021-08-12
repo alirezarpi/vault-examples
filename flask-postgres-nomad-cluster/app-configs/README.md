@@ -21,7 +21,8 @@ $ docker run -d --name vault-dynamic-secrets-flask-postgres-database --network h
 
 ### Run the flask app
 
-```$ docker run -it --rm --name vault-dynamic-secrets-flask-postgres-app --network host -e VERSION=0.0.0 -e DB_HOST=localhost -e DB_NAME=dvdrental -e DB_USER=postgres -e DB_PASSWORD=postgres alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest
+```
+$ docker run -it --rm --name vault-dynamic-secrets-flask-postgres-app --network host -e VERSION=0.0.0 -e DB_HOST=localhost -e DB_NAME=dvdrental -e DB_USER=postgres -e DB_PASSWORD=postgres alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest
 ```
 
 ### For import sample data into database
