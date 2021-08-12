@@ -22,8 +22,20 @@ job "vault-flask-postgres-database" {
             port = "db"
         }
 
+        volume "database-data" {
+            type      = "host"
+            read_only = false
+            source    = "database-data"
+        }
+
         task "postgres-database" {
             driver = "docker"
+
+            volume_mount {
+                volume      = "database-data"
+                destination = "/var/lib/postgresql/data"
+                read_only   = false
+            }
 
             vault {
                 policies  = ["database-access"]

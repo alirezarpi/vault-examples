@@ -41,6 +41,8 @@ You can now run the job deployment to the cluster:
 ```
 $ nomad job run cloud-configs/database.nomad.hcl
 ```
+**Important note: It is NOT recommended to deploy your database in workload management like Nomad and etc., this is just for educational purposes**
+
 
 ### Import Sample Data
 

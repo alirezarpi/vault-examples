@@ -38,8 +38,8 @@ job "vault-flask-postgres-app" {
 
 		update {
 			max_parallel     = 1
-			min_healthy_time = "30s"
-			healthy_deadline = "2m"
+			min_healthy_time = "5s"
+			healthy_deadline = "60s"
 		}
 
 		restart {
@@ -58,8 +58,9 @@ job "vault-flask-postgres-app" {
 			}
 
 			config {
-				// image = "alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest"
-                image = "localhost:5000/vault-dynamic-secrets-flask-postgres-app:latest"
+				image = "alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest"
+				// uncomment line below if you pushed the image in the registry of yours in vagrant
+                // image = "localhost:5000/vault-dynamic-secrets-flask-postgres-app:latest"
 				ports = ["api"]
 			}
 
@@ -67,7 +68,7 @@ job "vault-flask-postgres-app" {
 			template {
                 data = <<EOT
         {{ with secret "database/creds/postgres-database-role" }}
-VERSION=0.0.0
+VERSION=0.0.1
 DB_HOST=127.0.0.1
 DB_NAME="dvdrental"
 DB_USER="{{ .Data.username }}"

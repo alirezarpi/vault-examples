@@ -188,6 +188,7 @@ nomad -autocomplete-install
 complete -C /usr/bin/nomad nomad
 
 sudo mkdir -p /opt/nomad
+sudo mkdir -p /srv/live/postgres-database/data/
 
 (
 cat <<-EOF
@@ -239,6 +240,10 @@ plugin "raw_exec" {
 client {
   enabled = true
   network_interface = "eth0"
+  host_volume "database-data" {
+    path = "/srv/live/postgres-database/data/"
+    read_only = false
+  }
 }
 
 vault {

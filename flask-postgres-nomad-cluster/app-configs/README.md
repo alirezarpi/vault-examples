@@ -31,6 +31,10 @@
 
 ---
 
-## Nomad
+### Quick note
 
-`$ nomad job run ./cloud-configs/*`
+You can change the tag and push it to your *vagrant environment registry* in case where nomad going to use:
+```
+$ docker tag alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest localhost:5000/vault-dynamic-secrets-flask-postgres-app:latest
+$ docker push localhost:5000/vault-dynamic-secrets-flask-postgres-app:latest
+```
