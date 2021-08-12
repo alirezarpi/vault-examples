@@ -2,10 +2,14 @@
 
 ## Build
 
-`$ docker build -t alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest .`
+```
+$ docker build -t alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest.
+```
 
 ## Pull
-`$ docker pull alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest`
+```
+$ docker pull alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest
+```
 
 ## Test Run
 ### Run Database
