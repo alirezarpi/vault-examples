@@ -6,6 +6,14 @@
 
 > Builds related to the apps are located into `README.md` in the `app-configs` directory.
 
+### Create Vagrant box
+First of all you should run:
+```
+$ vagrant up
+```
+
+this will install all the packages needed for _hashistack_ environment.
+
 ### Creating Static Secret Database Credentials in Vault
 
 After everything is up you can create the database credentials in `vault` by issuing the commands into vagrant box (`$vagrant ssh`):
