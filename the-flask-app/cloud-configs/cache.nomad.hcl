@@ -28,7 +28,7 @@ job "the-flask-app-cache" {
 
         network {
             port "db" {
-                static = 6379
+                to = 6379
             }
 			dns {
 				servers = ["10.0.2.15"]

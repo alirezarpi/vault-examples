@@ -66,7 +66,7 @@ enter the `password` that you've set on vault and the data is imported successfu
 
 Enable database secret engine by:
 ```
-vagrant@test-infrastructure:~$ vault secrets enable database
+vagrant@test-infrastructure:~$ c
 ```
 
 then configure how should vault communicate to the DB:
@@ -101,7 +101,7 @@ path "database/creds/postgres-database-role" {
 
 write the policy to the `database-dynamic-access` so the nomad job use it:
 ```
-vault policy write database-dynamic-access app-policy.hcl
+vagrant@test-infrastructure:~$ vault policy write database-dynamic-access app-policy.hcl
 ```
 
 ### Run the Cache Job

@@ -70,18 +70,20 @@ job "the-flask-app" {
 
 			template {
                 data = <<EOT
-        {{ with secret "database/creds/postgres-database-role" }}
 VERSION=0.0.1
 CACHE_HOST=the-flask-app-cache-group-service.service.consul
-CACHE_PORT=6379
+{{- range service "the-flask-app-cache-group-service" }}
+CACHE_PORT={{ .Port }}
+{{ end }}
 DB_HOST=the-flask-app-database-group-service.service.consul
 DB_NAME="dvdrental"
+{{ with secret "database/creds/postgres-database-role" }}
 DB_USER="{{ .Data.username }}"
 DB_PASSWORD="{{ .Data.password | toJSON }}"
-        {{ end }}
+{{ end }}
 EOT
-				destination = "db.env"
-				env         = true
+				destination   = "db.env"
+				env           = true
             }
 
 			resources {
