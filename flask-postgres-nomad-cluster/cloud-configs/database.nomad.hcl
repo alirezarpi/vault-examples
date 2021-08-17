@@ -1,4 +1,4 @@
-job "vault-flask-postgres-database" {
+job "the-flask-app-database" {
     datacenters = ["local-dc"]
     type = "service"
 
@@ -7,12 +7,15 @@ job "vault-flask-postgres-database" {
 		value = "linux"
 	}
 
-    group "vault-flask-postgres-database" {
+    group "the-flask-app-database-group" {
         network {
             port "db"{
                 static = 5432
             }
-
+			dns {
+				servers = ["10.0.2.15"]
+				searches = ["service.consul"]
+			}
             mode = "bridge"
         }
 

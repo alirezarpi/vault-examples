@@ -1,4 +1,4 @@
-job "vault-flask-postgres-app" {
+job "the-flask-app" {
 	datacenters = ["local-dc"]
 	type = "service"
 
@@ -12,14 +12,17 @@ job "vault-flask-postgres-app" {
 		max_parallel = 1
 	}
 
-	group "vault-flask-postgres-app" {
-		count = 5
+	group "the-flask-app-group" {
+		count = 3
 
 		network {
 			port "api" {
 				to = 5000
 			}
-
+			dns {
+				servers = ["10.0.2.15"]
+				searches = ["service.consul"]
+			}
 			mode = "bridge"
 		}
 			
@@ -39,7 +42,7 @@ job "vault-flask-postgres-app" {
 		update {
 			max_parallel     = 1
 			min_healthy_time = "5s"
-			healthy_deadline = "60s"
+			healthy_deadline = "9m"
 		}
 
 		restart {
@@ -50,7 +53,7 @@ job "vault-flask-postgres-app" {
 			mode = "fail"
 		}
 
-		task "flask-app" {
+		task "app" {
 			driver = "docker"
 
 			vault {
@@ -58,7 +61,7 @@ job "vault-flask-postgres-app" {
 			}
 
 			config {
-				image = "alirezarpi/vault-dynamic-secrets-flask-postgres-app:latest"
+				image = "alirezarpi/the-flask-app:latest"
 				// uncomment line below if you pushed the image in the registry of yours in vagrant
                 // image = "localhost:5000/vault-dynamic-secrets-flask-postgres-app:latest"
 				ports = ["api"]
@@ -69,7 +72,9 @@ job "vault-flask-postgres-app" {
                 data = <<EOT
         {{ with secret "database/creds/postgres-database-role" }}
 VERSION=0.0.1
-DB_HOST=127.0.0.1
+CACHE_HOST=the-flask-app-cache-group-service.service.consul
+CACHE_PORT=6379
+DB_HOST=the-flask-app-database-group-service.service.consul
 DB_NAME="dvdrental"
 DB_USER="{{ .Data.username }}"
 DB_PASSWORD="{{ .Data.password | toJSON }}"
@@ -80,7 +85,7 @@ EOT
             }
 
 			resources {
-				cpu = 256
+				cpu = 128
 				memory = 64
 			}
 
