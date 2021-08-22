@@ -37,6 +37,16 @@ job "the-flask-app" {
 				timeout = "3s"
 				path = "/health/"
 			}
+			connect {
+				sidecar_service {
+					proxy {
+						upstreams {
+							destination_name = "the-flask-app-cache-group-service"
+							local_bind_port  = 6379
+						}
+					}
+				}
+			}
 		}
 
 		update {
@@ -71,10 +81,8 @@ job "the-flask-app" {
 			template {
                 data = <<EOT
 VERSION=0.0.1
-CACHE_HOST=the-flask-app-cache-group-service.service.consul
-{{- range service "the-flask-app-cache-group-service" }}
-CACHE_PORT={{ .Port }}
-{{ end }}
+CACHE_HOST=127.0.0.1
+CACHE_PORT=6379
 DB_HOST=the-flask-app-database-group-service.service.consul
 DB_NAME="dvdrental"
 {{ with secret "database/creds/postgres-database-role" }}

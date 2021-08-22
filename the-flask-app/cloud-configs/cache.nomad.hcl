@@ -2,6 +2,11 @@ job "the-flask-app-cache" {
 	datacenters = ["local-dc"]
     type = "service"
 
+    constraint {
+		attribute = "${attr.kernel.name}"
+		value = "linux"
+	}
+
     update {
         max_parallel = 1
         min_healthy_time = "10s"
@@ -27,9 +32,6 @@ job "the-flask-app-cache" {
         }
 
         network {
-            port "db" {
-                to = 6379
-            }
 			dns {
 				servers = ["10.0.2.15"]
 				searches = ["service.consul"]
@@ -40,7 +42,10 @@ job "the-flask-app-cache" {
         service {
             name = "${TASKGROUP}-service"
             tags = ["cache"]
-            port = "db"
+            port = "6379"
+			connect {
+				sidecar_service {}
+			}
         }
 
         ephemeral_disk {
@@ -58,7 +63,6 @@ job "the-flask-app-cache" {
 
             config {
                 image = "redis:3.2"
-                ports = ["db"]
             }
 
             resources {
