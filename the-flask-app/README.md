@@ -56,9 +56,9 @@ $ nomad job run cloud-configs/database.nomad.hcl
 
 For continuing this demo project you need sample data the you can import them by doing:
 ```
-$ nomad alloc exec -task postgres-database -job the-flask-app-database wget https://www.postgresqltutorial.com/wp-content/uploads/2019/05/dvdrental.zip -O /dvdrental.zip
-$ nomad alloc exec -task postgres-database -job the-flask-app-database unzip /dvdrental.zip
-$ nomad alloc exec -task postgres-database -job the-flask-app-database pg_restore -U <USER> -W -d dvdrental /dvdrental.tar
+vagrant@test-infrastructure:~$ wget https://www.postgresqltutorial.com/wp-content/uploads/2019/05/dvdrental.zip -O /home/vagrant/dvdrental.zip
+vagrant@test-infrastructure:~$ unzip /home/vagrant/dvdrental.zip
+vagrant@test-infrastructure:~$ pg_restore -h the-flask-app-database-group-service -U <USER> -W -d dvdrental /home/vagrant/dvdrental.tar
 ```
 enter the `password` that you've set on vault and the data is imported successfully (ignore some of queries because it's set to user `postgres` which we're not using).
 
@@ -66,7 +66,7 @@ enter the `password` that you've set on vault and the data is imported successfu
 
 Enable database secret engine by:
 ```
-vagrant@test-infrastructure:~$ c
+vagrant@test-infrastructure:~$ vault secrets enable database
 ```
 
 then configure how should vault communicate to the DB:
