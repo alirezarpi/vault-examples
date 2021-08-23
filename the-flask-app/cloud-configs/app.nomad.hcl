@@ -44,6 +44,10 @@ job "the-flask-app" {
 							destination_name = "the-flask-app-cache-group-service"
 							local_bind_port  = 6379
 						}
+						upstreams {
+							destination_name = "the-flask-app-database-group-service"
+							local_bind_port  = 5432
+						}
 					}
 				}
 			}
@@ -81,9 +85,9 @@ job "the-flask-app" {
 			template {
                 data = <<EOT
 VERSION=0.0.1
-CACHE_HOST=127.0.0.1
+CACHE_HOST=the-flask-app-cache-group-service
 CACHE_PORT=6379
-DB_HOST=the-flask-app-database-group-service.service.consul
+DB_HOST=the-flask-app-database-group-service
 DB_NAME="dvdrental"
 {{ with secret "database/creds/postgres-database-role" }}
 DB_USER="{{ .Data.username }}"

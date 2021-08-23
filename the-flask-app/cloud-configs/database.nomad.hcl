@@ -9,9 +9,6 @@ job "the-flask-app-database" {
 
     group "the-flask-app-database-group" {
         network {
-            port "db"{
-                static = 5432
-            }
 			dns {
 				servers = ["10.0.2.15"]
 				searches = ["service.consul"]
@@ -22,7 +19,10 @@ job "the-flask-app-database" {
         service {
             name = "${TASKGROUP}-service"
             tags = ["database"]
-            port = "db"
+            port = "5432"
+			connect {
+				sidecar_service {}
+			}
         }
 
         volume "database-data" {
@@ -46,7 +46,6 @@ job "the-flask-app-database" {
 
             config {
                 image = "postgres:12-alpine"
-                ports = ["db"]
             }
             
             template {
