@@ -9,6 +9,9 @@ job "the-flask-app-database" {
 
     group "the-flask-app-database-group" {
         network {
+            port "db" {
+                static = 5432
+            }
 			dns {
 				servers = ["10.0.2.15"]
 				searches = ["service.consul"]
