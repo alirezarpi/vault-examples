@@ -6,6 +6,10 @@
 
 > Builds related to the apps are located into `README.md` in the `app-configs` directory.
 
+### Requirements
+- Install [**Hashicorp Vagrant**](https://www.vagrantup.com/downloads)
+- Install [**Hashicorp Nomad**](https://www.nomadproject.io/downloads)
+
 ### Create Vagrant box
 First of all you should run:
 ```
@@ -116,6 +120,14 @@ $ nomad job run cloud-configs/cache.nomad.hcl
 You can now run the job deployment to the cluster:
 ```
 $ nomad job run cloud-configs/app.nomad.hcl
+```
+
+### Creating Consul Intentions
+For creating intentions run:
+```
+vagrant@test-infrastructure:~$ consul intention create -deny '*' '*'
+vagrant@test-infrastructure:~$ consul intention create -allow 'the-flask-app-group-service' 'the-flask-app-database-group-service'
+vagrant@test-infrastructure:~$ consul intention create -allow 'the-flask-app-group-service' 'the-flask-app-cache-group-service'
 ```
 
 ## Accessing the project
