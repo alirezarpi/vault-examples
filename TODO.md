@@ -9,3 +9,8 @@
 - [x] use consul service discovery
 - [x] ~~use template rendering for dynamic port mapping~~
 - [x] use Consul Connect integration 
+
+### the-flask-app-tls
+- [ ] copy `the-flask-app` configurations
+- [ ] add Vault CA for SSL and TLS connection in Nomad cluster
+- [ ] turn off rpc_upgrade_mode and reload nomad on Vagrantfile
