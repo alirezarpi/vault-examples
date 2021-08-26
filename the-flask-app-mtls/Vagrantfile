@@ -1,0 +1,349 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$script = <<SCRIPT
+apt-get update
+apt-get install -y apt-transport-https ca-certificates gnupg curl net-tools postgresql-client unzip jq vim
+
+wget --quiet -O - https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg > /dev/null
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian buster stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io
+
+usermod -aG docker vagrant
+
+wget --quiet -O - https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com buster main" | tee /etc/apt/sources.list.d/hashicorp.list > /dev/null
+
+apt-get update
+
+apt-get install -y consul
+consul -autocomplete-install
+complete -C /usr/bin/consul consul
+
+mkdir -p /opt/consul
+
+(
+cat <<-EOF
+[Unit]
+Description=Consul
+Documentation=https://www.consul.io/
+Requires=network-online.target
+After=network-online.target
+ConditionFileNotEmpty=/etc/consul.d/consul.hcl
+
+[Service]
+ExecStart=/usr/bin/consul agent -config-dir=/etc/consul.d/
+ExecReload=/bin/kill -HUP MAINPID
+KillMode=process
+KillSignal=SIGTERM
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+EOF
+) | tee /tmp/consul.service
+
+sed 's/MAINPID/\$MAINPID/g' /tmp/consul.service > /etc/systemd/system/consul.service
+
+(
+cat <<-EOF
+datacenter = "local-dc"
+data_dir = "/opt/consul"
+
+server = true
+bootstrap_expect=1
+
+bind_addr = "0.0.0.0"
+advertise_addr = "127.0.0.1"
+
+ports {
+  dns  = 53
+  grpc = 8502
+}
+
+connect {
+  enabled = true
+}
+
+client_addr = "0.0.0.0"
+
+ui_config {
+  enabled = true
+}
+EOF
+) | tee /etc/consul.d/consul.hcl
+
+curl -L -o cni-plugins.tgz "https://github.com/containernetworking/plugins/releases/download/v0.9.0/cni-plugins-linux-$( [ $(uname -m) = aarch64 ] && echo arm64 || echo amd64)"-v0.9.0.tgz
+mkdir -p /opt/cni/bin
+sh -c "echo 1 > /proc/sys/net/bridge/bridge-nf-call-arptables"
+sh -c "echo 1 > /proc/sys/net/bridge/bridge-nf-call-ip6tables"
+sh -c "echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables"
+tar -C /opt/cni/bin -xzf cni-plugins.tgz
+(
+cat <<-EOF
+net.bridge.bridge-nf-call-arptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+) | tee /etc/sysctl.d/88-cni-ruls.conf
+
+systemctl enable consul
+systemctl start consul
+
+curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
+apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+apt-get update && apt-get install vault
+
+(
+cat <<-EOF
+[Unit]
+Description="HashiCorp Vault - A tool for managing secrets"
+Documentation=https://www.vaultproject.io/docs/
+Requires=network-online.target
+After=network-online.target
+ConditionFileNotEmpty=/etc/vault.d/vault.hcl
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+User=vault
+Group=vault
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+SecureBits=keep-caps
+AmbientCapabilities=CAP_IPC_LOCK
+Capabilities=CAP_IPC_LOCK+ep
+CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK
+NoNewPrivileges=yes
+ExecStart=/usr/bin/vault server -config=/etc/vault.d/vault.hcl
+ExecReload=/bin/kill -HUP MAINPID
+KillMode=process
+KillSignal=SIGINT
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+StartLimitInterval=60
+StartLimitIntervalSec=60
+StartLimitBurst=3
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target
+EOF
+) | tee /tmp/vault.service
+
+sed 's/MAINPID/\$MAINPID/g' /tmp/vault.service > /etc/systemd/system/vault.service
+
+(
+cat <<-EOF
+storage "consul" {
+  address = "127.0.0.1:8500"
+  path    = "vault/"
+}
+
+listener "tcp" {
+  address     = "127.0.0.1:8200"
+  tls_disable = 1
+}
+EOF
+) | tee /etc/vault.d/vault.hcl
+
+systemctl enable vault
+systemctl start vault
+
+echo "sleeping 10 secs for vault service..."
+sleep 10
+export VAULT_ADDR='http://127.0.0.1:8200'
+echo "export VAULT_ADDR=http://127.0.0.1:8200" >> /home/vagrant/.bashrc
+vault operator init > /home/vagrant/vault-init.log
+root_key=$(cat vault-init.log | grep "Initial Root Token" | cut -d ":" -f 2 | tr -d " ")
+export VAULT_TOKEN=$root_key
+echo "export VAULT_TOKEN=$root_key" >> /home/vagrant/.bashrc
+
+(
+cat <<-EOF
+#!/bin/bash
+
+export VAULT_TOKEN=$(cat vault-init.log | grep "Initial Root Token" | cut -d ":" -f 2 | tr -d " ")
+
+vault operator unseal $(cat /home/vagrant/vault-init.log | grep "Unseal Key 1" | cut -d ":" -f "2" | tr -d " ")
+vault operator unseal $(cat /home/vagrant/vault-init.log | grep "Unseal Key 2" | cut -d ":" -f "2" | tr -d " ")
+vault operator unseal $(cat /home/vagrant/vault-init.log | grep "Unseal Key 3" | cut -d ":" -f "2" | tr -d " ")
+EOF
+) | tee /home/vagrant/unlock-vault.sh
+
+chmod +x /home/vagrant/unlock-vault.sh
+bash /home/vagrant/unlock-vault.sh
+
+curl https://nomadproject.io/data/vault/nomad-server-policy.hcl -O -s -L
+curl https://nomadproject.io/data/vault/nomad-cluster-role.json -O -s -L
+vault policy write nomad-server nomad-server-policy.hcl
+vault write /auth/token/roles/nomad-cluster @nomad-cluster-role.json
+vault token create -policy nomad-server -period 72h -orphan
+
+(
+cat <<-EOF
+[Resolve]
+DNS=10.0.2.15
+Domains=~consul.
+EOF
+) | tee /etc/systemd/resolved.conf
+
+echo "nameserver 10.0.2.15" | tee /etc/resolv.conf.new
+cat /etc/resolv.conf | tee --append /etc/resolv.conf.new
+mv /etc/resolv.conf.new /etc/resolv.conf
+
+echo "search service.consul" | tee --append /etc/resolv.conf
+
+apt-get install -y nomad
+nomad -autocomplete-install
+complete -C /usr/bin/nomad nomad
+
+mkdir -p /opt/nomad
+mkdir -p /srv/live/postgres-database/data/
+mkdir -p /srv/live/cache/data/
+
+(
+cat <<-EOF
+[Unit]
+Description=Nomad
+Documentation=https://www.nomadproject.io/docs/
+
+#Wants=network-online.target
+#After=network-online.target
+
+Wants=consul.service
+After=consul.service
+After=vault.service
+
+[Service]
+ExecReload=/bin/kill -HUP MAINPID
+ExecStart=/usr/bin/nomad agent -config /etc/nomad.d/
+KillMode=process
+KillSignal=SIGINT
+LimitNOFILE=65536
+LimitNPROC=infinity
+Restart=on-failure
+RestartSec=2
+
+TasksMax=infinity
+OOMScoreAdjust=-1000
+
+[Install]
+WantedBy=multi-user.target
+EOF
+) | tee /tmp/nomad.service
+
+sed 's/MAINPID/\$MAINPID/g' /tmp/nomad.service > /etc/systemd/system/nomad.service
+
+(
+cat <<-EOF
+datacenter = \"local-dc\"
+data_dir = \"/opt/nomad\"
+
+server {
+  enabled = true
+  bootstrap_expect = 1
+}
+
+plugin "raw_exec" {
+  config {
+    enabled = true
+  }
+}
+
+client {
+  enabled = true
+  network_interface = "eth0"
+  host_volume "database-data" {
+    path = "/srv/live/postgres-database/data/"
+    read_only = false
+  }
+  host_volume "cache-data" {
+    path = "/srv/live/cache/data/"
+    read_only = false
+  }
+}
+
+consul {
+  address = "127.0.0.1:8500"
+}
+
+vault {
+  enabled     = true
+  address     = "http://127.0.0.1:8200"
+  token       = "$root_key"
+  create_from_role = "nomad-cluster"
+}
+EOF
+) | tee /etc/nomad.d/nomad.hcl
+
+systemctl enable nomad
+systemctl start nomad
+
+docker ps -q --filter 'name=registry' && docker rm -f registry || echo 'already down'
+docker run -d -p 5000:5000 --restart=always --name registry -v /home/vagrant/registry:/var/lib/registry registry:2
+
+(
+cat <<-EOF
+job "fabio" {
+  datacenters = ["local-dc"]
+  type = "system"
+
+  group "fabio" {
+    network {
+      port "lb" {
+        static = 9999
+      }
+      port "ui" {
+        static = 9998
+      }
+    }
+
+    task "fabio" {
+      driver = "docker"
+      config {
+        image = "fabiolb/fabio"
+        network_mode = "host"
+        ports = ["lb","ui"]
+      }
+
+      resources {
+        cpu    = 200
+        memory = 128
+      }
+    }
+  }
+}
+EOF
+) | tee /tmp/fabio.nomad
+
+echo "sleeping 20 secs for nomad service..."
+sleep 20
+
+nomad job run /tmp/fabio.nomad
+SCRIPT
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "debian/bullseye64"
+  config.vm.box_check_update = false
+  config.vbguest.auto_update = false
+
+  config.vm.hostname = "test-infrastructure"
+  config.vm.provision "shell", inline: $script, privileged: true
+
+  for p in [4646, 5000, 8200, 8500, 9998, 9999] do
+    config.vm.network :forwarded_port, guest: p, host: p
+  end
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = 8192
+    vb.cpus = 2
+  end
+end
