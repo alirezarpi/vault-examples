@@ -287,8 +287,239 @@ EOF
 systemctl enable nomad
 systemctl start nomad
 
+echo "sleeping 20 secs for nomad service..."
+sleep 20
+mkdir /etc/consul-template.d/
+
+curl -O https://releases.hashicorp.com/consul-template/0.27.0/consul-template_0.27.0_linux_amd64.zip
+unzip consul-template_0.27.0_linux_amd64.zip
+install consul-template /usr/local/bin/
+
+(
+cat <<-EOF
+[Unit]
+Description=Consul-Template
+Documentation=Consul-Template
+Requires=network-online.target
+After=network-online.target
+ConditionFileNotEmpty=/etc/consul-template.d/consul-template.hcl
+
+[Service]
+ExecStart=/usr/local/bin/consul-template -config=/etc/consul-template.d/
+ExecReload=/bin/kill -HUP MAINPID
+KillMode=process
+KillSignal=SIGTERM
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+EOF
+) | tee /tmp/consul-template.service
+
+sed 's/MAINPID/\$MAINPID/g' /tmp/consul-template.service > /etc/systemd/system/consul-template.service
+
+vault secrets enable pki
+vault secrets tune -max-lease-ttl=87600h pki
+
+vault write -field=certificate pki/root/generate/internal \
+    common_name="global.nomad" ttl=87600h > CA_cert.crt
+
+vault secrets enable -path=pki_int pki
+vault secrets tune -max-lease-ttl=43800h pki_int
+
+vault write -format=json pki_int/intermediate/generate/internal \
+    common_name="global.nomad Intermediate Authority" \
+    ttl="43800h" | jq -r '.data.csr' > pki_intermediate.csr
+
+vault write -format=json pki/root/sign-intermediate \
+    csr=@pki_intermediate.csr format=pem_bundle \
+    ttl="43800h" | jq -r '.data.certificate' > intermediate.cert.pem
+
+vault write pki_int/intermediate/set-signed certificate=@intermediate.cert.pem
+
+vault write pki_int/roles/nomad-cluster allowed_domains=global.nomad \
+    allow_subdomains=true max_ttl=86400s require_cn=false generate_lease=true
+
+(
+cat <<-EOF
+path "pki_int/issue/nomad-cluster" {
+  capabilities = ["update"]
+}
+EOF
+) | tee tls-policy.hcl
+
+vault policy write tls-policy tls-policy.hcl
+
+vault token create -policy="tls-policy" -period=24h -orphan > tls-policy.txt
+tls_token=$(cat tls-policy.txt | grep "token " | tr -d " " | cut -c 6-)
+
+mkdir -p /opt/nomad/templates
+
+(
+cat <<-EOF
+{{ with secret "pki_int/issue/nomad-cluster" "common_name=server.global.nomad" "ttl=24h" "alt_names=localhost" "ip_sans=127.0.0.1"}}
+{{ .Data.certificate }}
+{{ end }}
+EOF
+) | tee /opt/nomad/templates/agent.crt.tpl
+(
+cat <<-EOF
+{{ with secret "pki_int/issue/nomad-cluster" "common_name=server.global.nomad" "ttl=24h" "alt_names=localhost" "ip_sans=127.0.0.1"}}
+{{ .Data.private_key }}
+{{ end }}
+EOF
+) | tee /opt/nomad/templates/agent.key.tpl
+(
+cat <<-EOF
+{{ with secret "pki_int/issue/nomad-cluster" "common_name=server.global.nomad" "ttl=24h"}}
+{{ .Data.issuing_ca }}
+{{ end }}
+EOF
+) | tee /opt/nomad/templates/ca.crt.tpl
+(
+cat <<-EOF
+{{ with secret "pki_int/issue/nomad-cluster" "ttl=24h" }}
+{{ .Data.certificate }}
+{{ end }}
+EOF
+) | tee /opt/nomad/templates/cli.crt.tpl
+(
+cat <<-EOF
+{{ with secret "pki_int/issue/nomad-cluster" "ttl=24h" }}
+{{ .Data.private_key }}
+{{ end }}
+EOF
+) | tee /opt/nomad/templates/cli.key.tpl
+
+(
+cat <<-EOF
+vault {
+  address      = "http://active.vault.service.consul:8200"
+  token        = "$tls_token"
+  unwrap_token = false
+  renew_token  = true
+}
+
+syslog {
+  enabled  = true
+  facility = "LOCAL5"
+}
+
+template {
+  source      = "/opt/nomad/templates/agent.crt.tpl"
+  destination = "/opt/nomad/agent-certs/agent.crt"
+  perms       = 0700
+  command     = "systemctl reload nomad"
+}
+
+template {
+  source      = "/opt/nomad/templates/agent.key.tpl"
+  destination = "/opt/nomad/agent-certs/agent.key"
+  perms       = 0700
+  command     = "systemctl reload nomad"
+}
+
+template {
+  source      = "/opt/nomad/templates/ca.crt.tpl"
+  destination = "/opt/nomad/agent-certs/ca.crt"
+  command     = "systemctl reload nomad"
+}
+
+template {
+  source      = "/opt/nomad/templates/cli.crt.tpl"
+  destination = "/opt/nomad/cli-certs/cli.crt"
+}
+
+template {
+  source      = "/opt/nomad/templates/cli.key.tpl"
+  destination = "/opt/nomad/cli-certs/cli.key"
+}
+EOF
+) | tee /etc/consul-template.d/consul-template.hcl
+
+systemctl enable consul-template
+systemctl start consul-template
+
+rm /etc/nomad.d/nomad.hcl
+
+(
+cat <<-EOF
+datacenter = \"local-dc\"
+data_dir = \"/opt/nomad\"
+
+server {
+  enabled = true
+  bootstrap_expect = 1
+}
+
+plugin "raw_exec" {
+  config {
+    enabled = true
+  }
+}
+
+client {
+  enabled = true
+  network_interface = "eth0"
+  host_volume "database-data" {
+    path = "/srv/live/postgres-database/data/"
+    read_only = false
+  }
+  host_volume "cache-data" {
+    path = "/srv/live/cache/data/"
+    read_only = false
+  }
+}
+
+consul {
+  address = "127.0.0.1:8500"
+}
+
+tls {
+  http = true
+  rpc  = true
+
+  ca_file   = "/opt/nomad/agent-certs/ca.crt"
+  cert_file = "/opt/nomad/agent-certs/agent.crt"
+  key_file  = "/opt/nomad/agent-certs/agent.key"
+
+  verify_server_hostname = true
+  verify_https_client    = true
+  #rpc_upgrade_mode       = true
+}
+
+vault {
+  enabled     = true
+  address     = "http://127.0.0.1:8200"
+  token       = "$root_key"
+  create_from_role = "nomad-cluster"
+}
+EOF
+) | tee /etc/nomad.d/nomad.hcl
+
+echo "sleeping 10 secs for consul-template service..."
+sleep 10
+sed -i 's/#rpc_upgrade_mode/rpc_upgrade_mode/g' /etc/nomad.d/nomad.hcl
+systemctl reload nomad
+echo "sleeping 5 secs for nomad service..."
+sleep 5
+sed -i 's/rpc_upgrade_mode/#rpc_upgrade_mode/g' /etc/nomad.d/nomad.hcl
+systemctl reload nomad
+echo "sleeping 10 secs for nomad service..."
+sleep 10
+
 docker ps -q --filter 'name=registry' && docker rm -f registry || echo 'already down'
 docker run -d -p 5000:5000 --restart=always --name registry -v /home/vagrant/registry:/var/lib/registry registry:2
+
+export NOMAD_ADDR=https://localhost:4646
+export NOMAD_CACERT='/opt/nomad/agent-certs/ca.crt'
+export NOMAD_CLIENT_CERT='/opt/nomad/cli-certs/cli.crt'
+export NOMAD_CLIENT_KEY='/opt/nomad/cli-certs/cli.key'
+echo "export NOMAD_ADDR=https://localhost:4646" >> /home/vagrant/.bashrc
+echo "export NOMAD_CACERT='/opt/nomad/agent-certs/ca.crt'" >> /home/vagrant/.bashrc
+echo "export NOMAD_CLIENT_CERT='/opt/nomad/cli-certs/cli.crt'" >> /home/vagrant/.bashrc
+echo "export NOMAD_CLIENT_KEY='/opt/nomad/cli-certs/cli.key'" >> /home/vagrant/.bashrc
 
 (
 cat <<-EOF
@@ -324,10 +555,10 @@ job "fabio" {
 EOF
 ) | tee /tmp/fabio.nomad
 
-echo "sleeping 20 secs for nomad service..."
-sleep 20
-
 nomad job run /tmp/fabio.nomad
+
+systemctl restart nomad
+
 SCRIPT
 
 Vagrant.configure(2) do |config|
