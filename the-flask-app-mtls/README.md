@@ -59,7 +59,7 @@ vagrant@test-infrastructure:~$ vault policy write database-access database-polic
 
 You can now run the job deployment to the cluster:
 ```
-$ nomad job run cloud-configs/database.nomad.hcl
+vagrant@test-infrastructure:~$ nomad job run /vagrant/cloud-configs/database.nomad.hcl
 ```
 **Important note: It is NOT recommended to deploy your database in workload management like Nomad and etc., this is just for educational purposes**
 
@@ -120,14 +120,14 @@ vagrant@test-infrastructure:~$ vault policy write database-dynamic-access app-po
 
 You can now run the `cache` job deployment to the cluster:
 ```
-$ nomad job run cloud-configs/cache.nomad.hcl
+vagrant@test-infrastructure:~$ nomad job run /vagrant/cloud-configs/cache.nomad.hcl
 ```
 
 ### Run the App Job
 
 You can now run the job deployment to the cluster:
 ```
-$ nomad job run cloud-configs/app.nomad.hcl
+vagrant@test-infrastructure:~$ nomad job run /vagrant/cloud-configs/app.nomad.hcl
 ```
 
 ### Creating Consul Intentions
