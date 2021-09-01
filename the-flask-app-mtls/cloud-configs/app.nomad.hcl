@@ -13,7 +13,7 @@ job "the-flask-app" {
 	}
 
 	group "the-flask-app-group" {
-		count = 3
+		count = 1
 
 		network {
 			port "api" {

@@ -88,7 +88,7 @@ then configure how should vault communicate to the DB:
 vagrant@test-infrastructure:~$ vault write database/config/postgres-database \
     plugin_name=postgresql-database-plugin \
     allowed_roles="postgres-database-role" \
-    connection_url="postgresql://{{username}}:{{password}}@localhost:5432/dvdrental?sslmode=disable" \
+    connection_url="postgresql://{{username}}:{{password}}@the-flask-app-database-group-service.service.consul:5432/dvdrental?sslmode=disable" \
     username="<USER>" \
     password="<PASSWORD>"
 ```
