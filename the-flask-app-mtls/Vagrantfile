@@ -346,6 +346,9 @@ cat <<-EOF
 path "pki_int/issue/nomad-cluster" {
   capabilities = ["update"]
 }
+path "kv-v2/data/consul/config/encryption" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
 EOF
 ) | tee tls-policy.hcl
 
@@ -435,14 +438,80 @@ template {
   source      = "/opt/nomad/templates/cli.key.tpl"
   destination = "/opt/nomad/cli-certs/cli.key"
 }
+
+template {
+  source      = "/opt/consul/templates/gossip.key.tpl"
+  destination = "/opt/consul/gossip/gossip.key"
+  perms       = 0700
+  command     = "/opt/rotate_key.sh"
+}
 EOF
 ) | tee /etc/consul-template.d/consul-template.hcl
+
+vault secrets enable kv-v2
+consul keygen | tee encryption.key
+
+rm /etc/consul.d/consul.hcl
+(
+cat <<-EOF
+datacenter = "local-dc"
+data_dir = "/opt/consul"
+
+server = true
+bootstrap_expect = 1
+
+encrypt = \"$(cat encryption.key)\"
+encrypt_verify_incoming = false
+encrypt_verify_outgoing = false
+
+bind_addr = "0.0.0.0"
+advertise_addr = "127.0.0.1"
+
+ports {
+  dns  = 53
+  grpc = 8502
+}
+
+connect {
+  enabled = true
+}
+
+client_addr = "0.0.0.0"
+
+ui_config {
+  enabled = true
+}
+EOF
+) | tee /etc/consul.d/consul.hcl
+
+vault kv put kv-v2/consul/config/encryption key=$(cat encryption.key) ttl=1h
+mkdir -p /opt/consul/templates
+(
+cat <<-EOF
+{{ with secret "kv-v2/data/consul/config/encryption" }}
+{{ .Data.data.key}}
+{{ end }}
+EOF
+) | tee /opt/consul/templates/gossip.key.tpl
+
+curl -O https://raw.githubusercontent.com/alirezarpi/vault-examples/master/the-flask-app-mtls/cloud-configs/rotate_key.sh
+mv rotate_key.sh /opt/rotate_key.sh
+chmod +x /opt/rotate_key.sh
+
+vault kv put kv-v2/consul/config/encryption key=$(consul keygen) ttl=1s
 
 systemctl enable consul-template
 systemctl start consul-template
 
-rm /etc/nomad.d/nomad.hcl
+systemctl restart consul
+sed -i 's/encrypt_verify_outgoing = false/encrypt_verify_outgoing = true/g' /etc/consul.d/consul.hcl
+systemctl reload consul
+sed -i 's/encrypt_verify_incoming = false/encrypt_verify_incoming = true/g' /etc/consul.d/consul.hcl
+systemctl restart consul
+sleep 10
+echo "sleeping 10 secs for consul service..."
 
+rm /etc/nomad.d/nomad.hcl
 (
 cat <<-EOF
 datacenter = \"local-dc\"
@@ -505,7 +574,7 @@ systemctl reload nomad
 echo "sleeping 5 secs for nomad service..."
 sleep 5
 sed -i 's/rpc_upgrade_mode/#rpc_upgrade_mode/g' /etc/nomad.d/nomad.hcl
-systemctl reload nomad
+systemctl restart nomad
 echo "sleeping 10 secs for nomad service..."
 sleep 10
 
@@ -556,8 +625,6 @@ EOF
 ) | tee /tmp/fabio.nomad
 
 nomad job run /tmp/fabio.nomad
-
-systemctl restart nomad
 
 SCRIPT
 

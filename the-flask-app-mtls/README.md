@@ -3,7 +3,9 @@
 ### This is the exact example as `the-flask-app` but this example the cluster is secured by mTLS provided by Vault.
 
 ## Note 
-This project is an example of working Vault CA that provides SSL Certificates every 24h to the cluster.
+This project is an example of working cluster with Vault that:
+- provides SSL certificates for the Nomad cluster.
+- rotates Gossip encryption for the Consul cluster.
 
 **NOTE: After each restart you should run:**
 ```

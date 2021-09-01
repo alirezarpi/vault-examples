@@ -16,5 +16,5 @@
 - [x] add Vault CA for SSL and TLS connection in Nomad cluster
 - [x] turn off rpc_upgrade_mode and reload nomad on Vagrantfile
 - [x] make everything runnable
-- [ ] add Vault CA for SSL and TLS connection in Consul cluster
+- [x] rotate gossip encryption for consul
 - [ ] refactor and beautify Vagrantfile
