@@ -133,7 +133,7 @@ vagrant@test-infrastructure:~$ nomad job run /vagrant/cloud-configs/app.nomad.hc
 ```
 
 ### Creating Consul Intentions
-For creating intentions run:
+For creating [intentions](https://www.consul.io/docs/connect/intentions) run:
 ```
 vagrant@test-infrastructure:~$ consul intention create -deny '*' '*'
 vagrant@test-infrastructure:~$ consul intention create -allow 'the-flask-app-group-service' 'the-flask-app-database-group-service'
