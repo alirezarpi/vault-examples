@@ -6,6 +6,11 @@
 $ vagrant ssh -c "export VAULT_ADDR=http://127.0.0.1:8200 && ./unlock-vault.sh && sudo systemctl restart nomad && echo 'nameserver 10.0.2.15' | sudo tee /etc/resolv.conf.new && cat /etc/resolv.conf | sudo tee --append /etc/resolv.conf.new && sudo mv /etc/resolv.conf.new /etc/resolv.conf && echo 'search service.consul' | sudo tee --append /etc/resolv.conf"
 ```
 
+## About this repo 
+This project is an example of working cluster with Vault that:
+- provides dynamic secrets for database credentials with specific user access to tables.
+- provides static secret for database master user.
+
 ## Setup
 
 > Builds related to the apps are located into `README.md` in the `app-configs` directory.
