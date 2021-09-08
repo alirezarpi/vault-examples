@@ -18,3 +18,7 @@
 - [x] make everything runnable
 - [x] rotate gossip encryption for consul
 - [ ] refactor and beautify Vagrantfile
+
+### docker swarm mode example
+
+### kubernetes mode example
