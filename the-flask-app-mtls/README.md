@@ -6,6 +6,8 @@
 This project is an example of working cluster with Vault that:
 - provides SSL certificates for the Nomad cluster.
 - rotates Gossip encryption for the Consul cluster.
+- provides dynamic secrets for database credentials with specific user access to tables.
+- provides static secret for database master user.
 
 **NOTE: After each restart you should run:**
 ```
