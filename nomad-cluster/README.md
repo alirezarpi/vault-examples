@@ -1,18 +1,15 @@
-# The-Flask-APP mTLS Example
+# Nomad Cluster Example
 
-### This is the exact example as `the-flask-app` but this example the cluster is secured by mTLS provided by Vault.
-
-## About this repo 
-This project is an example of working cluster with Vault that:
-- provides SSL certificates for the Nomad cluster.
-- rotates Gossip encryption for the Consul cluster.
-- provides dynamic secrets for database credentials with specific user access to tables.
-- provides static secret for database master user.
 
 **NOTE: After each restart you should run:**
 ```
 $ vagrant ssh -c "export VAULT_ADDR=http://127.0.0.1:8200 && ./unlock-vault.sh && sudo systemctl restart nomad && echo 'nameserver 10.0.2.15' | sudo tee /etc/resolv.conf.new && cat /etc/resolv.conf | sudo tee --append /etc/resolv.conf.new && sudo mv /etc/resolv.conf.new /etc/resolv.conf && echo 'search service.consul' | sudo tee --append /etc/resolv.conf"
 ```
+
+## About this repo 
+This project is an example of working cluster with Vault that:
+- provides dynamic secrets for database credentials with specific user access to tables.
+- provides static secret for database master user.
 
 ## Setup
 
@@ -63,7 +60,7 @@ vagrant@test-infrastructure:~$ vault policy write database-access database-polic
 
 You can now run the job deployment to the cluster:
 ```
-vagrant@test-infrastructure:~$ nomad job run /vagrant/cloud-configs/database.nomad.hcl
+$ nomad job run cloud-configs/database.nomad.hcl
 ```
 **Important note: It is NOT recommended to deploy your database in workload management like Nomad and etc., this is just for educational purposes**
 
@@ -90,7 +87,7 @@ then configure how should vault communicate to the DB:
 vagrant@test-infrastructure:~$ vault write database/config/postgres-database \
     plugin_name=postgresql-database-plugin \
     allowed_roles="postgres-database-role" \
-    connection_url="postgresql://{{username}}:{{password}}@the-flask-app-database-group-service.service.consul:5432/dvdrental?sslmode=disable" \
+    connection_url="postgresql://{{username}}:{{password}}@localhost:5432/dvdrental?sslmode=disable" \
     username="<USER>" \
     password="<PASSWORD>"
 ```
@@ -124,18 +121,18 @@ vagrant@test-infrastructure:~$ vault policy write database-dynamic-access app-po
 
 You can now run the `cache` job deployment to the cluster:
 ```
-vagrant@test-infrastructure:~$ nomad job run /vagrant/cloud-configs/cache.nomad.hcl
+$ nomad job run cloud-configs/cache.nomad.hcl
 ```
 
 ### Run the App Job
 
 You can now run the job deployment to the cluster:
 ```
-vagrant@test-infrastructure:~$ nomad job run /vagrant/cloud-configs/app.nomad.hcl
+$ nomad job run cloud-configs/app.nomad.hcl
 ```
 
 ### Creating Consul Intentions
-For creating [intentions](https://www.consul.io/docs/connect/intentions) run:
+For creating intentions run:
 ```
 vagrant@test-infrastructure:~$ consul intention create -deny '*' '*'
 vagrant@test-infrastructure:~$ consul intention create -allow 'the-flask-app-group-service' 'the-flask-app-database-group-service'
