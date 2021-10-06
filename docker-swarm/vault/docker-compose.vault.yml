@@ -1,0 +1,104 @@
+version: "3.7"
+
+# ---------- Start of Services -----------
+services:
+# ------------ App Service --------------
+  flask-app:
+    image: "alirezarpi/the-flask-app:latest"
+    container_name: "the-flask-app"
+    hostname: "the-flask-app"
+    environment:
+      VERSION: 0.0.1
+      CACHE_HOST: "the-flask-cache"
+      CACHE_PORT: 6379
+      DB_HOST: "the-flask-database"
+      DB_NAME: "swarm-test"
+      DB_USER: "user"
+      DB_PASSWORD: "password"
+    deploy:
+      mode: 'global'
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "1GB"
+        reservations:
+          memory: "128MB"
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.labels.swarm-node == true
+    depends_on:
+      - database
+      - cache
+    ports:
+      - 5000:5000
+    networks:
+      - the-flask-network
+
+# --------- Database Service ------------
+  database:
+    image: "postgres:12-alpine"
+    container_name: "the-flask-database"
+    hostname: "the-flask-database"
+    environment:
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_DB: "swarm-test"
+    deploy:
+      mode: 'global'
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "1GB"
+        reservations:
+          memory: "128MB"
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.labels.swarm-node == true
+    volumes:
+        - "the-flask-database-vol:/var/lib/postgresql/data:rw"
+    networks:
+      - the-flask-network
+
+# ------------ Cache Service -------------
+  cache:
+    image: "redis:3.2"
+    container_name: "the-flask-cache"
+    hostname: "the-flask-cache"
+    deploy:
+      mode: 'global'
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "1GB"
+        reservations:
+          memory: "128MB"
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.labels.swarm-node == true
+    volumes:
+        - "the-flask-cache-vol:/data:rw"
+    networks:
+      - the-flask-network
+
+# ----------- End of Services ------------
+
+# ---------- Start of Volumes ------------
+volumes:
+  the-flask-database-vol:
+  the-flask-cache-vol:
+
+# ---------- Start of Networks -----------
+networks:
+  the-flask-network:

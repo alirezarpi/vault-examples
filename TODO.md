@@ -20,5 +20,11 @@
 - [ ] refactor and beautify Vagrantfile
 
 ### docker swarm mode example
+- [x] create docker-compose.yml
+- [ ] complete readme
+- [ ] add docker secrets to static docker-compose
+- [ ] add dynamic secrets for `the-flask-app` inside Vault
+- [ ] add static secrets for `the-flask-database` inside Vault
+- [ ] create swarm cluster
 
 ### kubernetes mode example
