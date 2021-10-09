@@ -22,8 +22,9 @@
 ### docker swarm mode example
 - [x] create docker-compose.yml
 - [x] create swarm cluster
+- [x] add docker secrets to static docker-compose
 - [ ] complete readme
-- [ ] add docker secrets to static docker-compose
+- [ ] application read password from file, or is there any way to not do that ?
 - [ ] add dynamic secrets for `the-flask-app` inside Vault
 - [ ] add static secrets for `the-flask-database` inside Vault
 
