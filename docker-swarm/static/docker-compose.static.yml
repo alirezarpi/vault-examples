@@ -45,8 +45,11 @@ services:
     hostname: "the-flask-database"
     environment:
       POSTGRES_USER: "user"
-      POSTGRES_PASSWORD: "password"
+      # POSTGRES_PASSWORD: "password"
       POSTGRES_DB: "swarm-test"
+      POSTGRES_PASSWORD_FILE: "/run/secrets/psql-password"
+    secrets:
+      - psql-password
     deploy:
       mode: 'global'
       restart_policy:
@@ -102,3 +105,8 @@ volumes:
 # ---------- Start of Networks -----------
 networks:
   the-flask-network:
+
+# ---------- Start of Secrets ------------
+secrets:
+  psql-password:
+    external: true
