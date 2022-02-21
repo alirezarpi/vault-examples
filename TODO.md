@@ -1,7 +1,6 @@
-# Todo
+#Todo
 
 ### the-flask-app
-
 - [x] add database url to flask app
 - [x] add database cloud configs (nomad)
 - [x] use vault dynamic secrets to authenticate for postgres
@@ -29,3 +28,4 @@
 - [ ] add static secrets for `the-flask-database` inside Vault
 
 ### kubernetes mode example
+- [  ] 
