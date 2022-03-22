@@ -28,4 +28,8 @@
 - [ ] add static secrets for `the-flask-database` inside Vault
 
 ### kubernetes mode example
-- [  ] 
+- [ ] use terraform as your IaC 
+- [x] use secret file
+- [ ] test postgres password
+- [ ] export secret file on startup for container
+- [ ] document

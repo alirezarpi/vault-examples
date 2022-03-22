@@ -1,4 +1,7 @@
-
 .vagrant
 *.box
 .env
+
+.terraform*
+.terraform/**
+terraform.*

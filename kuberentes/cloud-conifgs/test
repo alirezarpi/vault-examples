@@ -1,0 +1,7 @@
+
+POSTGRES_DB=vltk8s
+
+POSTGRES_PASSWORD=db-secret-password
+
+POSTGRES_USER=db-user
+

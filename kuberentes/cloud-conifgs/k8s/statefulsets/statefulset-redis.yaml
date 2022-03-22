@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  creationTimestamp: null
+  labels:
+    app: tfa-redis
+  name: tf-redis
+  namespace: vltk8s
+
+spec:
+  replicas: 1
+  serviceName: tfa-redis
+  
+  updateStrategy:
+    type: OnDelete
+
+  selector:
+    matchLabels:
+      app: tfa-redis
+
+  template:
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "the-flask-app"
+        vault.hashicorp.com/agent-inject-secret-configs: "kv/data/redis/config"
+        vault.hashicorp.com/agent-inject-template-configs: |
+          {{ with secret "kv/data/redis/config" -}}
+          {{ range $k, $v := .Data }}
+          export {{ $k }}={{ $v }}
+          {{ end }}
+          {{- end }}
+      creationTimestamp: null
+      labels:
+        app: tfa-redis
+    spec:
+      serviceAccountName: k8s-service-acct
+    
+      volumes:
+        - name: db-storage
+          persistentVolumeClaim:
+            claimName: db-storage-claim
+
+      containers:
+        - name: tfa-redis
+          image: postgres:9.5-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+
+          env:
+          - name: POSTGRES_PASSWORD_FILE
+            value: /vault/secrets/configs
+        
+          
+      restartPolicy: Always
