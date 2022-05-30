@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: vltk8s
+data:
+  POSTGRES_PASSWORD_FILE: "/vault/secrets/configs"

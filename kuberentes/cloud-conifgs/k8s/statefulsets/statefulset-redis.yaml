@@ -23,7 +23,7 @@ spec:
     metadata:
       annotations:
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "the-flask-app"
+        vault.hashicorp.com/role: "vltk8s"
         vault.hashicorp.com/agent-inject-secret-configs: "kv/data/redis/config"
         vault.hashicorp.com/agent-inject-template-configs: |
           {{ with secret "kv/data/redis/config" -}}
@@ -35,7 +35,7 @@ spec:
       labels:
         app: tfa-redis
     spec:
-      serviceAccountName: k8s-service-acct
+      serviceAccountName: vltk8s-service-acct
     
       volumes:
         - name: db-storage
@@ -44,14 +44,9 @@ spec:
 
       containers:
         - name: tfa-redis
-          image: postgres:9.5-alpine
+          image: redis
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5432
 
-          env:
-          - name: POSTGRES_PASSWORD_FILE
-            value: /vault/secrets/configs
-        
-          
       restartPolicy: Always

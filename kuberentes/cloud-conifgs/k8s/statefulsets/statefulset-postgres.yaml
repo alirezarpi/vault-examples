@@ -23,11 +23,11 @@ spec:
     metadata:
       annotations:
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: "the-flask-app"
+        vault.hashicorp.com/role: "vltk8s"
         vault.hashicorp.com/agent-inject-secret-configs: "kv/data/database/config"
         vault.hashicorp.com/agent-inject-template-configs: |
           {{ with secret "kv/data/database/config" -}}
-          {{ range $k, $v := .Data }}
+          {{ range $k, $v := .Data.data }}
           {{ $k }}={{ $v }}
           {{ end }}
           {{- end }}
@@ -35,7 +35,7 @@ spec:
       labels:
         app: tfa-database
     spec:
-      serviceAccountName: k8s-service-acct
+      serviceAccountName: vltk8s-service-acct
     
       volumes:
         - name: db-storage
@@ -45,11 +45,12 @@ spec:
       containers:
         - name: tfa-database
           image: postgres:9.5-alpine
-          args:
-            # I know I could use POSTGRES_PASSWORD_FILE, this is ofc demo ;D
-            ['sh', '-c', 'export $(cat /vault/secrets/configs) && exec /docker-entrypoint.sh postgres']
           imagePullPolicy: IfNotPresent
+          envFrom:
+          - configMapRef:
+              name: postgres-config
+
           ports:
             - containerPort: 5432
-          
+
       restartPolicy: Always

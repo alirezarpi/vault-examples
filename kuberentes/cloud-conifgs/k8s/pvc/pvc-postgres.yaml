@@ -1,16 +1,28 @@
 
-apiVersion: v1
 kind: PersistentVolumeClaim
+apiVersion: v1
 metadata:
     name: db-storage-claim
     namespace: vltk8s
 spec:
     storageClassName: manual
     accessModes:
-        - ReadWriteMany
+        - ReadWriteOnce
     resources:
         requests:
-            storage: 2Gi
-    selector:
-        matchLabels:
-            name: db-storage-production
+            storage: 1Gi
+
+---
+
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+    name: db-storage
+spec:
+    storageClassName: manual
+    accessModes:
+        - ReadWriteOnce
+    capacity:
+        storage: 2Gi
+    hostPath:
+        path: "/data/vltk8s/"
