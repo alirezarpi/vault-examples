@@ -1,0 +1,6 @@
+[submodule "kuberentes/app"]
+	path = kuberentes/app
+	url = git@github.com:alirezarpi/sample-container-app.git
+[submodule "nomad-cluster/app"]
+	path = nomad-cluster/app
+	url = git@github.com:alirezarpi/sample-container-app.git
